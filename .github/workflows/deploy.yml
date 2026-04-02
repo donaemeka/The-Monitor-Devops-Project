@@ -39,47 +39,48 @@ jobs:
         run: |
           mkdir -p terraform
           cat > terraform/terraform.tfvars << 'EOF'
-          key_name  = "donatus"
+          key_name  = "odogwu1"
           EOF
           echo "terraform.tfvars created!"
 
-      # Step 4.5: Create S3 Bucket for us-east-1
+      # Step 4.5: Create S3 Bucket for eu-west-2
       - name:  Create New S3 Bucket
         run: |
           echo "=== Creating New S3 Bucket ==="
           
           # Create unique bucket name
-          NEW_BUCKET="terraform-state-426333731292-us-east-1"
+          ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+          NEW_BUCKET="terraform-state-${ACCOUNT_ID}-eu-west-2"
           echo "Using bucket: $NEW_BUCKET"
           
-          # For us-east-1, use simple mb command
-          aws s3 mb s3://$NEW_BUCKET --region us-east-1 || echo "Bucket may already exist"
+          # For eu-west-2, use simple mb command
+          aws s3 mb s3://$NEW_BUCKET --region eu-west-2 || echo "Bucket may already exist"
           
           # Enable versioning
           aws s3api put-bucket-versioning \
             --bucket $NEW_BUCKET \
             --versioning-configuration Status=Enabled \
-            --region us-east-1
+            --region eu-west-2
           
           # Update Terraform configuration to use new bucket
           sed -i 's/my-new-terraform-bucket/'"$NEW_BUCKET"'/g' terraform/main.tf
-          sed -i 's/region.*=.*"eu-west-2"/region = "us-east-1"/g' terraform/main.tf
+          sed -i 's/region.*=.*"eu-west-2"/region = "eu-west-2"/g' terraform/main.tf
           echo "Updated Terraform to use new bucket: $NEW_BUCKET"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
+          AWS_REGION: eu-west-2
 
       # Step 5: Verify AWS Key Pair Exists
       - name:  Verify Key Pair
         run: |
-          echo "=== Checking Key Pair in us-east-1 ==="
-          aws ec2 describe-key-pairs --region us-east-1 --key-names "donatus"
-          echo "Key pair 'donatus' exists in us-east-1!"
+          echo "=== Checking Key Pair in eu-west-2 ==="
+          aws ec2 describe-key-pairs --region eu-west-2 --key-names "odogwu1"
+          echo "Key pair 'odogwu1' exists in eu-west-2!"
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
+          AWS_REGION: eu-west-2
 
       # Step 6: Terraform Init
       - name:  Terraform Init
@@ -87,7 +88,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
+          AWS_REGION: eu-west-2
 
       # Step 7: Terraform Plan
       - name:  Terraform Plan
@@ -95,7 +96,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
+          AWS_REGION: eu-west-2
 
       # Step 8: Terraform Apply
       - name:  Terraform Apply
@@ -103,7 +104,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
+          AWS_REGION: eu-west-2
 
       # Step 9: Get EC2 IP
       - name:  Get Server IP
@@ -125,7 +126,7 @@ jobs:
         env:
           AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
           AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-          AWS_REGION: us-east-1
+          AWS_REGION: eu-west-2
 
       # Step 10: Wait for SSH
       - name: ⏳ Wait for SSH
@@ -148,15 +149,15 @@ jobs:
       - name:  Install Docker on Server
         run: |
           mkdir -p ~/.ssh/
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/donatus.pem
-          chmod 600 ~/.ssh/donatus.pem
+          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/odogwu1.pem
+          chmod 600 ~/.ssh/odogwu1.pem
           ssh-keyscan -H $IP_ADDRESS >> ~/.ssh/known_hosts 2>/dev/null
 
           echo "Testing SSH connection first..."
-          ssh -i ~/.ssh/donatus.pem -o StrictHostKeyChecking=no ec2-user@$IP_ADDRESS "echo 'SSH connection successful!'"
+          ssh -i ~/.ssh/odogwu1.pem -o StrictHostKeyChecking=no ec2-user@$IP_ADDRESS "echo 'SSH connection successful!'"
 
           echo "Installing Docker on the server..."
-          ssh -i ~/.ssh/donatus.pem -o StrictHostKeyChecking=no ec2-user@$IP_ADDRESS << 'EOF'
+          ssh -i ~/.ssh/odogwu1.pem -o StrictHostKeyChecking=no ec2-user@$IP_ADDRESS << 'EOF'
           # Install Docker
           sudo yum update -y
           sudo amazon-linux-extras install docker -y
@@ -176,7 +177,7 @@ jobs:
           
           # Test Docker installation
           echo "Testing Docker installation..."
-          ssh -i ~/.ssh/donatus.pem -o StrictHostKeyChecking=no ec2-user@$IP_ADDRESS "sudo docker ps"
+          ssh -i ~/.ssh/odogwu1.pem -o StrictHostKeyChecking=no ec2-user@$IP_ADDRESS "sudo docker ps"
           echo "Docker installation verified!"
         env:
           IP_ADDRESS: ${{ env.IP_ADDRESS }}
@@ -186,7 +187,7 @@ jobs:
         run: |
           echo "Running Ansible playbook..."
           ansible-playbook -i "$IP_ADDRESS," ansible/playbook.yml \
-            --private-key=~/.ssh/donatus.pem \
+            --private-key=~/.ssh/odogwu1.pem \
             -u ec2-user \
             -e "ansible_ssh_common_args='-o StrictHostKeyChecking=no'"
         env:

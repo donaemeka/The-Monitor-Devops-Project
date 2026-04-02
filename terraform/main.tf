@@ -11,15 +11,15 @@ terraform {
   }
 
   backend "s3" {
-    bucket         = "terraform-state-426333731292-us-east-1"
+    bucket         = "my-new-terraform-bucket"
     key            = "monitor-project/terraform.tfstate"
-    region         = "us-east-1"
+    region         = "eu-west-2"
     encrypt        = true
   }
 }
 
 provider "aws" {
-  region = "us-east-1"
+  region = "eu-west-2"
 }
 
 
@@ -37,7 +37,7 @@ resource "aws_vpc" "monitor_vpc" {
 resource "aws_subnet" "monitor_subnet" {
   vpc_id                  = aws_vpc.monitor_vpc.id
   cidr_block              = "10.0.1.0/24"
-  availability_zone       = "us-east-1a"
+  availability_zone       = "eu-west-2a"
   map_public_ip_on_launch = true
 
   tags = {
@@ -240,5 +240,5 @@ output "subnet_id" {
 
 output "ssh_connection" {
   description = "SSH connection command"
-  value = "ssh -i donatus.pem ec2-user@${aws_eip.monitor_eip.public_ip}"
+  value = "ssh -i odogwu1.pem ec2-user@${aws_eip.monitor_eip.public_ip}"
 }
