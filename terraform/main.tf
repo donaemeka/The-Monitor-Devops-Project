@@ -161,6 +161,15 @@ resource "aws_security_group" "monitor_sg" {
 
 
 # EC2 Instance 
+data "aws_ami" "amazon_linux_2" {
+  most_recent = true
+  owners      = ["amazon"]
+  
+  filter {
+    name   = "name"
+    values = ["amzn2-ami-hvm-*-x86_64-gp2"]
+  }
+}
 resource "aws_instance" "monitor_server" {
   ami           = data.aws_ami.amazon_linux_2.id  
   instance_type = var.instance_type
